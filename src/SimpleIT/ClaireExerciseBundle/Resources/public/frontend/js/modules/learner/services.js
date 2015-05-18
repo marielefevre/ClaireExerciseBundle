@@ -21,6 +21,28 @@ itemByExerciseServices.factory('ItemByExercise', ['$resource',
             {'exerciseId': '@exerciseId', 'itemId': '@itemId'}
         );}
 ]);
+/*
+var attemptListServices = angular.module('attemptListServices', ['ngResource']);
+
+attemptListServices.factory('AttemptList', ['$resource',
+    function ($resource) {
+        return $resource(
+            BASE_CONFIG.urls.api.attemptedModels + ':modelId'
+        );
+
+    }]); */
+/* Old **//*
+itemByExerciseServices.factory('ItemByExercise', ['$resource',
+    function ($resource) {
+
+        return $resource(
+            BASE_CONFIG.urls.api.exercises + ':exerciseId/items/:itemId',
+            {'exerciseId': '@exerciseId', 'itemId': '@itemId'}
+        );}
+]);
+*/
+
+
 /* TODO BRYAN : pour recuperer le contenu des exercises */
 
 var exerciseServices = angular.module('exerciseServices', ['ngResource']);
@@ -83,6 +105,7 @@ exerciseByModelServices.factory('ExerciseByModel', ['$resource',
         );
 
     }]);
+
 
 var attemptByExerciseServices = angular.module('attemptByExerciseServices', ['ngResource']);
 

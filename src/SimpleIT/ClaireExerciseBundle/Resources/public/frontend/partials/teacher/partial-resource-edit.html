@@ -305,10 +305,15 @@
                 </div>
             </div>
 
+            <!--<div class="panel panel-success row" > </-->
             <div class="panel panel-success row" >
                 <div class="col-xs-5">
                     <label>Modèle de proposition à générer</label>
-                    <input type="text" ng-model="proposition.text" class="form-control">
+                    <input type="text" ng-model="editedResource.content.generated_proposition" class="form-control">
+                </div>
+                <div class="col-xs-5">
+                    <label>Test 2 pour l'utilisation.</label>
+                    <input type="text" ng-model="editedResource.content.generatedWording" class="form-control">
                 </div>
                 <!--
                 <div class="col-xs-1">
@@ -353,6 +358,12 @@
 
                     <div class="col-xs-1">Nom</div>
                     <input type="text" ng-model="formula.name" class="col-xs-3"/>
+
+                    <div class="col-centred pull-right">
+                        <span
+                                data-ng-click="removeFromCollection_QCMFormula(editedResource.content.formulas, $index)"
+                                class="glyphicon glyphicon-remove"></span>
+                    </div>
 
                     <div class="col-xs-1">Equation</div>
                     <input type="text" ng-model="formula.equation" class="col-xs-7"/>

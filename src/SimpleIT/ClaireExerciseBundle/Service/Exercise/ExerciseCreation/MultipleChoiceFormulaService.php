@@ -135,6 +135,11 @@ class MultipleChoiceFormulaService extends ExerciseCreationService
          * TODO BRYAN : Bon, ici c est pour la generation d exercice a partir de la ressource generee... */
         /** @var MultipleChoiceFormulaQuestion $modelQuestion */
         foreach ($modelQuestionToAdd as $modelQuestion) {
+            $redo = true;
+            $it = 0;
+            $exerciseQuestion = new Question();
+            while($it<10 && $redo == true )
+            {
             // initialize the exercise question
             $exerciseQuestion = new Question();
             $exerciseQuestion->setDoNotShuffle($modelQuestion->getDoNotShuffle());
@@ -341,6 +346,25 @@ class MultipleChoiceFormulaService extends ExerciseCreationService
 
             } */
 
+
+            /* Verification que les réponses ne sont pas les memes */
+            $nb_propositions = sizeof($exerciseQuestion->getPropositions());
+            $redo = false;
+            $i=0; $j=0;
+            for($i=0; $i<$nb_propositions; $i++ )
+            {
+                for($j=$i+1; $j<$nb_propositions; $j++)
+                {
+                    if( $exerciseQuestion->getPropositions()[$i]->getText() == $exerciseQuestion->getPropositions()[$j]->getText() )
+                    {
+                        $redo = true;
+                    }
+                }
+            }
+            if($redo){ $it++;}
+
+            }
+            if($it>=10){return;}
             $exercise->addQuestion($exerciseQuestion);
         }
     }

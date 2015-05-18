@@ -73,6 +73,29 @@ class MultipleChoiceFormulaQuestionResource extends CommonResource
     private $doNotShuffle;
 
     /**
+     * @var string The wording to generate lack of propositions
+     * @Serializer\Type("string")
+     * @Serializer\Groups({"details", "resource_storage"})
+     */
+    private $generatedWording;
+
+    /**
+     * @param string $generatedWording
+     */
+    public function setGeneratedWording($generatedWording)
+    {
+        $this->generatedWording = $generatedWording;
+    }
+
+    /**
+     * @return string
+     */
+    public function getGeneratedWording()
+    {
+        return $this->generatedWording;
+    }
+
+    /**
      * Set comment
      *
      * @param string $comment

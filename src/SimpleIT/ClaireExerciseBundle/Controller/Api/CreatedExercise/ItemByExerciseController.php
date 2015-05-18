@@ -43,7 +43,10 @@ class ItemByExerciseController extends BaseController
     public function listAction($exerciseId)
     {
         try {
-            $items = $this->get('simple_it.exercise.item')->getAll($exerciseId);
+            $items = $this->get('simple_it.exercise.item')->getAllByExercise(
+                $exerciseId,
+                $this->getUserId()
+            );
 
             $itemResources = ItemResourceFactory::createCollection($items);
 

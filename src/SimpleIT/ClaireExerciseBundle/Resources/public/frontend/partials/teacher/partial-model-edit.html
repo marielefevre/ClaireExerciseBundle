@@ -299,6 +299,36 @@
     </div>
 </div>
 
+
+<!-- TODO BRYAN : Pour l'export--><!--
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <div id="download_JSON" class="col-centered">
+            <h5>Exporter des Exercices</h5>
+
+            <input name="MQCF_export" type="number" ng-model="MCFQ_number_export"
+                   value="1" min="1" max="200" required >
+
+            <!--
+            <div class="row">
+                 <div class="col-xs-12">
+                    <span id="MFCQ_exported">{{number_to_generate_left}}</span>
+                    <span> / </span>
+                   <span ng-bind="MCFQ_number_export">{{MCFQ_number_export}}</span>
+                 </div>
+            </div>
+            --
+            <button
+                    ng-disabled="!model.complete"
+                    ng-click="MCFQ_export_1(model, MCFQ_number_export)" class="btn btn-primary"
+                    title="Exporter un ensemble d'exercices generes">
+                Exporter
+            </button>
+        </div>
+    </div>
+</div> <!-->
+<!-- TODO Bryan : Fin de l'export -->
+
 <div class="navbar">
     <button back-Button class="btn btn-primary"
             title="Retour à l'écran précédent. Toute modification non sauvegardée sera perdue.">Retour
@@ -322,17 +352,20 @@
     </button>
 
     <!--ng-click="exportExerciceFromModel(model)" class="btn btn-primary"-->
-    <!--<button
+    <!--
+    <button
             ng-disabled="!model.complete"
             ng-click="exportExerciceFromModel(model)" class="btn btn-primary"
             title="Exporter un ensemble d'exercices generes">
         Exporter
-    </button>-->
+    </button>
+    -->
+
     <button ng-if="BASE_CONFIG.currentUserId == model.owner && model.removable"
             ng-click="deleteModel(model)" back-Button
             class="btn btn-danger pull-right"
             title="Supprimer ce modèle. Possible uniquement si aucun exercise n'a été généré à partir de ce modèle">
-        Supprimer
+        <Supprimer></Supprimer>
     </button>
 </div>
 

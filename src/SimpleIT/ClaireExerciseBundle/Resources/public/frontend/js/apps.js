@@ -16,6 +16,7 @@ var mainApp = angular.module('mainApp',
         'modelServices',
         'exerciseServices',
         'exerciseByModelServices',
+        'itemByExerciseServices', /* Bryan : Changed that */
         'attemptByExerciseServices',
         'answerServices',
         'attemptServices',

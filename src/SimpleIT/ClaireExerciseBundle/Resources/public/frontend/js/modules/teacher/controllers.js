@@ -531,6 +531,17 @@ resourceControllers.controller('resourceEditController', ['$scope', '$modal', 'R
             });
         };
 
+        $scope.removeFromCollection_QCMFormula = function (collection, index) {
+            if((collection[1]) && (index == 0) )
+            {
+                alert(collection[0].toSource());
+                console.dir(collection[0]);
+                collection[1].variables = collection[0].variables;
+            }
+            collection.splice(index, 1);
+
+        };
+
         $scope.removeFromCollection = function (collection, index) {
             collection.splice(index, 1);
         };
@@ -664,8 +675,8 @@ resourceControllers.controller('resourceSelectListController', ['$scope', 'BASE_
 
 var modelControllers = angular.module('modelControllers', ['ui.router']);
 
-modelControllers.controller('modelController', ['$scope', 'Exercise','Item', 'ExerciseByModel', 'AttemptByExercise', '$routeParams', '$location',
-    function ($scope, Exercise, Item, ExerciseByModel ,AttemptByExercise, $routeParams, $location) {
+modelControllers.controller('modelController', ['$scope', 'Exercise','Item', 'ExerciseByModel', 'AttemptByExercise','ItemByExercise', 'Answer', '$routeParams', '$location',
+    function ($scope, Exercise, Item, ExerciseByModel ,AttemptByExercise, ItemByExercise, Answer, $routeParams, $location) {
 
         $scope.section = 'model';
 
@@ -1041,30 +1052,254 @@ modelControllers.controller('modelController', ['$scope', 'Exercise','Item', 'Ex
         };
 
 
-        /* TODO BRYAN = EXPORT EN COUR ; FUNCTION ICI*/
+        /* TODO BRYAN EXPORT : EN COUR ; FUNCTION ICI*/
+
         /* export_model function_list */
         //var MCFQ_number_export = 3;
         var MCFQ_actual_number_export;
         var MCFQ_list_exercise = new Array();
         var MCFQ_actual_exercise;
+        var MCFQ_error_flag;
         //var A_popup;
 
+        /* TODO : Generate a document */
+        $scope.Generate_Json_File = function( json_filename,data_exercise)
+        {
+            //alert("Trying to generate a document");
+            var data = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data_exercise));
+            //$('<a href="data:' + data + '" download="data.json">Télécharger JSON</a>').appendTo('#download_JSON');
+            //$('<a href="data:' + data + '" download="data.json">Télécharger JSON</a>').appendTo('#download_JSON');
+            //window.location ='http://www.example.com';
+            if(MCFQ_error_flag == 1) { alert("Erreur lors de la génération, seulement " + data_exercise.length + " ont pu être générés"); }
+            var link = document.createElement("a");
+            link.download = json_filename + '.json';
+            link.href = data;
+            link.click();
+            window.open("data:"+data, "Export.json");
+            // window.open(uri, data);
+            //alert("data généré : " + data);
+
+        };
+
+
+        /* TODO BRYAN EXPORT : Verifier export_model final test here */
+        $scope.MCQF_export_generate = function(model, number_left)
+        {
+            if(typeof(number_left) === undefined){ alert("Nombre à exporter invalide"); return null;}
+            // Cas de génération finie, on doit créer le JSON !
+            if(number_left <= 0) {return null;}
+
+            //Cas de génération à continuer.
+            // TODO UNLOCK : alert("Nombre à exporter restant : " + number_left + ", model.id : " + model.id);
+            MCFQ_actual_exercise = ExerciseByModel.try({modelId: model.id},
+                function(exercise){
+                    if(number_left === 1)
+                    {
+                        $scope.MCQF_export_tryExercise(model, exercise, number_left);
+                    }
+                    else
+                    {
+                        $scope.MCQF_export_tryExercise(model, exercise, number_left);
+                        /* Flute... Ce dernier element n'attends pas pour appeler le suivant... */
+                        //$scope.MCQF_export_generate( exercise, number_left-1 );
+                    }
+                });
+        };
+
+        /*
+        *   Renvoie vrai si il existe un element equivalent deja cree. Un exercice est equivalent a un autre
+        *   si la question est la même, que les propositions sont toutes identiques (et de même nombre)
+        * */
+        $scope.MCFQ_is_equal = function( element )
+        {
+            var i, j, k;
+            var counter, eq_counter;
+            for(i=0; i< MCFQ_list_exercise.length; i++)
+            {
+                equal = true;
+                /* verification de la question */
+                if(MCFQ_list_exercise[i].content.question != element.content.question)
+                { equal = false; //alert("questions différentes !" );
+                }
+
+                /* verification de chaque proposition */
+                if( element.content.propositions.length == MCFQ_list_exercise[i].content.propositions.length)
+                {
+
+                    //alert("Verification : "+ JSON.stringify(element) + " avec " + JSON.stringify(MCFQ_list_exercise[i]) );
+                    eq_counter = 0;
+                    for(k=0; k<element.content.propositions.length; k++)
+                    {
+                        counter = 0;
+                        for( j=0; j<MCFQ_list_exercise[i].content.propositions.length; j++)
+                        {
+
+                           if( MCFQ_list_exercise[i].content.propositions[j].text == element.content.propositions[k].text
+                            && MCFQ_list_exercise[i].content.propositions[j].right == element.content.propositions[k].right ) { counter += 1; //alert(" Equivalent propositions trouvé !" );
+                           }
+
+                        }
+                        if(counter != 0 ) {eq_counter +=1;}
+                    }
+                    if(eq_counter != element.content.propositions.length) { equal = false; //alert(" Equivalent pour chaque propositions non trouvé !" );
+                    }
+
+                 } else { equal = false; //alert(" Nombre différent de propositions !" );
+                }
+
+                //alert("equal vaut : " + equal);
+                if(equal == true){return true;}
+                //return equal;
+            }
+            return false;
+        };
+
+        /**
+         *  Transformation des elements generes pour le json
+         */
+        $scope.MCFQ_treat = function(model)
+        {
+            var resultat = [];
+            var i, y, z;
+            var item_question_JSON=[];
+            var propositions = [];
+            var prop_item;
+            var prop;
+            //alert("Debut de la fonction treat");
+            var comment; // <- Où se trouve ce truc ??
+
+            /* Il me faut des fonctions de comparaison */
+            /* Creation des elemens. */
+            for(i=0; i<MCFQ_list_exercise.length; i++)
+            {
+                item_question_JSON = {};
+                //alert(" comment is..." + JSON.stringify(MCFQ_list_exercise[i].content.comment) );
+                //if( MCFQ_list_exercise[i].content.comment != undefined) {item_question_JSON["comment"] = MCFQ_list_exercise[i].content.comment; }
+
+                item_question_JSON["question"] =  MCFQ_list_exercise[i].content.question ;
+
+                //alert("Ajout des propositions");
+                propositions = [];
+                for( y=0; y<MCFQ_list_exercise[i].content.propositions.length; y++)
+                {
+                    prop = MCFQ_list_exercise[i].content.propositions[y];
+                    prop_item = {};
+                    prop_item["text"] = prop.text;
+                    prop_item["right"] = prop.right;
+                   // alert("Element ajoute : " + prop_item);
+                    propositions.push(prop_item);
+                   // alert("J'ai généré : JSON : " + JSON.stringify( propositions ));
+                   // alert() --  >;
+                }
+                item_question_JSON["propositions"]= propositions;
+
+
+                //alert("Ajout des origines");
+                item_question_JSON["origin_resource"] = MCFQ_list_exercise[i].content.origin_resource ;
+
+
+                /* Ajout des meta du domaine... URI-Evaluation */
+                //alert("Ajout des metas");
+                var aa;
+                var metas = [];
+                //alert(JSON.stringify(model.metadata));
+                for(aa=0; aa<model.metadata.length; aa++)
+                {
+                    //alert(JSON.stringify(model.metadata[aa]));
+                    metas.push(model.metadata[aa]);
+                }
+                if(metas.length>0)
+                {item_question_JSON["metas"] = metas;}
+                /*var metas = [];
+                for(z = 0; model.metadata.length;z++)
+                {
+                    metas.push( model.metadata[z] );
+                }
+                if(metas.length>0)
+                {item_question_JSON["metas"] = metas;}*/
+
+                item_question_JSON["item_type"] = "multiple-choice-question";
+                resultat.push( item_question_JSON );
+                //alert("J'ai généré treat : JSON : " + JSON.stringify( item_question_JSON ));
+                //alert("Originel : J'ai généré : JSON : " + JSON.stringify(MCFQ_list_exercise[i]));
+            }
+            //alert("Le modèle" + JSON.stringify(model));
+            $scope.Generate_Json_File("resultat",resultat);
+            //alert( JSON.stringify(resultat));
+
+        };
+
+        /* Variable a binder a l interface */
+        $scope.number_to_generate_left = 0;
+        $scope.successive_attempt_fail = 0;
         //function that create an attempt without visualing it
-        $scope.MCQF_export_tryExercise = function (exercise) {
+        $scope.MCQF_export_tryExercise = function (model, exercise, number) {
+            $scope.number_to_generate_left = MCFQ_list_exercise.length;
+            //alert($scope.number_to_generate_left);
+            //if(number === undefined){return null;} else {alert("#n = " + number );}
             // create attempt from exercise
             var exo_items;
+            var exo_answers;
+            var item_id_exo;
+            var attempt;
             //alert("exercise cree");
 
-            exo_items = Exercise.get({exerciseId : exercise.id});
-            //exo_items = Exercise.query({exerciseId : exercise.id});
-            //exo_items = Item.query({exerciseId : exercise.id},null );
-            //exo_items = Item.query({attemptId: 10},null );
-            exo_items = ItemByExercise.list({exerciseId : exercise.id});
+            exo_items = Exercise.get({exerciseId : exercise.id},
+
+            function(res){
+
+            // Create the attempt from exo...
+            attempt = AttemptByExercise.create({exerciseId: exercise.id},
+                function(result){
+                   // document.getElementById("MFCQ_exported").innerHTML = MCFQ_list_exercise.length;
+                    MCFQ_error_flag = 0;
+                    //alert("attemptId : " + JSON.stringify(result));
+                    item_id_exo = Item.query( {attemptId : result.id},
+                        function(result2){
+                        //alert("result2 :" + JSON.stringify(result2));
+                        //alert("result2.item_id :" + result2[0].item_id);
+                        var answer = new Answer;
+                        answer.content = [];
+
+                            for (i = 0; i < result2[0].content.propositions.length; ++i) {
+                                answer.content.push(0);
+                            }
+
+                        answer.$save(  { itemId: result2[0].item_id, attemptId : result.id},
+                            function(r3){
+                                //alert("JSON : " + JSON.stringify(r3.content.propositions));
+
+                                /* Avant le push, on vérifie ou on l en est */
+                                if( $scope.MCFQ_is_equal( r3 )) {$scope.successive_attempt_fail= $scope.successive_attempt_fail + 1; number++; //alert("exercices identiques ! : " + $scope.successive_attempt_fail );
+                                }
+                                else { $scope.successive_attempt_fail = 0; MCFQ_list_exercise.push(r3);//alert("OK!");
+                                }
+                                if($scope.successive_attempt_fail>10){
+                                   /* alert("10 exercices identiques générés à la suite. Verifiez que le modèle permet la génération d'au moins le nombre d'exercice demandé. Arrêt de la génération à ."
+                                    + MCFQ_list_exercise.length +" exercices. " );*/
+                                    MCFQ_error_flag = 1; number = 1;}
+
+                                /* C'est ici qu'il faut gérer le cas d'aret */
+                                if(number === 1) {//alert("J'ai généré : JSON : " + JSON.stringify(MCFQ_list_exercise));
+                                                  $scope.MCFQ_treat(model);
+                                                  return;}
+
+                                $scope.MCQF_export_generate( model, number-1 );
+                           }
+                        );
+                      }
+                    );
+                    //exo_answers = Answer.view( {attemptId : result.id} );
+                }
+            );
+            }
+            );
+            //alert("attemptId : " + JSON.stringify(attempt));
 
 
-            //$scope.items = Item.query({attemptId: $stateParams.attemptId},
             //retrieve those elements...
             //alert(JSON.stringify(exo_items));
+            //alert("J ai fini pour cet exercice");
         };
 
         //function that return one exercise
@@ -1076,27 +1311,36 @@ modelControllers.controller('modelController', ['$scope', 'Exercise','Item', 'Ex
             console.log('export MCFQ exercise...');
 
             //alert(">< : " + MCFQ_number_export);
-
+            $scope.MCQF_export_generate(model, MCFQ_number_export);
             //alert("actuel : " + $scope.MCFQ_actual_number_export + " max : "+ $scope.MCFQ_number_export);
             //alert("actuel : " + element(by.model('MCFQ_actual_number_export')) + " max : "+ element(by.model('MCF_number_export')));
-            while($scope.MCFQ_actual_number_export<MCFQ_number_export)
+            /*while($scope.MCFQ_actual_number_export<MCFQ_number_export)
             {
                 // Repeat until exercise completion.
                 MCFQ_actual_exercise = ExerciseByModel.try({modelId: model.id},
                 function (exercise) {
-                    alert("id :"+MCFQ_actual_exercise.id + " :: idExo :" + exercise.id);
-                    $scope.MCQF_export_tryExercise(exercise);
+                    alert("nombre à exporter : " + MCFQ_number_export + " id :"+MCFQ_actual_exercise.id + " :: idExo :" + exercise.id);
+                    $scope.MCQF_export_tryExercise(exercise, MCFQ_actual_number_export);
                 });
-
-
+            /**/
+                /* Faire une boucle d'appel à la fonction à la manière récursive ? avec un compteur qui augmente et un cas d'arret ?
+                * Seem legit
+                * */
+            /*
                 // Si la génération s'est bien passée, on peut passer à la génération suivante
                 $scope.MCFQ_actual_number_export =  $scope.MCFQ_actual_number_export + 1;
+                //TODO Bryan : Pour le moment, la génération passe directement à la suite sans vérifier...
+                // Il faut générer un par un avec verification. Se calquer sur ExerciseByModel.try
 
-
-                // On oublie pas de stocker l'exercice
-                MCFQ_list_exercise.push(MCFQ_actual_exercise);
-
+                // On n'oublie pas de stocker l'exercice
+                //MCFQ_list_exercise.push(MCFQ_actual_exercise);
             }
+            /**/
+
+
+            /* On vérifie ce que l'on a exporté */
+           // alert("J'ai généré : JSON : " + JSON.stringify(MCFQ_list_exercise));
+           //alert('Génération des exercices en pause...');
         };
 
         //function that generate exercise until MCFQ_number_export

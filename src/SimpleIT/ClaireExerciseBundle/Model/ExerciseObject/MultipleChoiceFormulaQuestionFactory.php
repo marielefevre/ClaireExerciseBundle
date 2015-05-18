@@ -44,6 +44,7 @@ class MultipleChoiceFormulaQuestionFactory
         $mcq->setDoNotShuffle($res->getDoNotShuffle() === true);
         $mcq->setMaxNOfRightPropositions($res->getMaxNumberOfRightPropositions());
         $mcq->setMaxNumberOfPropositions($res->getMaxNumberOfPropositions());
+        $mcq->setGeneratedProposition($res->getGeneratedWording());
 
         /** @var MultipleChoicePropositionResource $prop */
         foreach ($res->getPropositions() as $prop) {
