@@ -12,7 +12,7 @@
         }
     ],
     "require": {
-        "php": ">=5.3.3",
+        "php": ">=5.4.1",
         "claroline/core-bundle": "~5.0"
     },
     "require-dev": {
@@ -20,7 +20,8 @@
     },
     "autoload": {
         "psr-0": {
-            "SimpleIT\\": "src/"
+            "SimpleIT\\ClaireExerciseBundle": ""
         }
-    }
+    },
+    "target-dir": "SimpleIT/ClaireExerciseBundle"
 }
