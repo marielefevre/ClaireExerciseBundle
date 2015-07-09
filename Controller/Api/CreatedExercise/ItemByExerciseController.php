@@ -44,8 +44,7 @@ class ItemByExerciseController extends BaseController
     {
         try {
             $items = $this->get('simple_it.exercise.item')->getAllByExercise(
-                $exerciseId,
-                $this->getUserId()
+                $exerciseId
             );
 
             $itemResources = ItemResourceFactory::createCollection($items);
