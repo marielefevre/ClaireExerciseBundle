@@ -20,6 +20,7 @@ namespace SimpleIT\ClaireExerciseBundle\Service\Exercise\CreatedExercise;
 
 use SimpleIT\ClaireExerciseBundle\Entity\CreatedExercise\Answer;
 use SimpleIT\ClaireExerciseBundle\Entity\CreatedExercise\Item;
+use SimpleIT\ClaireExerciseBundle\Entity\StoredExerciseFactory;
 use SimpleIT\ClaireExerciseBundle\Exception\NonExistingObjectException;
 use SimpleIT\ClaireExerciseBundle\Model\Resources\ItemResource;
 use SimpleIT\ClaireExerciseBundle\Model\Resources\ItemResourceFactory;
@@ -193,6 +194,31 @@ class ItemService extends TransactionalService implements ItemServiceInterface
 
         return $this->itemRepository->findAllBy($storedExercise);
     }
+
+
+    /**
+     * TODO Bryan;
+     * Get all items by exercise Id
+     *
+     * @param int $exerciseId
+     * @param int $userId
+     *
+     * @return array
+     */
+    public function getAllByExercise(
+    $exerciseId,
+    $userId
+)
+{
+    $storedExercise = $this->storedExerciseService->get($exerciseId);
+
+
+    $items = array();
+
+    $items = $storedExercise->getItems();
+
+    return $items;
+}
 
     /**
      * Get all items by attempt Id

@@ -117,6 +117,9 @@
                                 <div ng-switch-when="multiple-choice-question">
                                     <span title="QCM" class="glyphicon glyphicon-check" style="font-size: 260%"></span>
                                 </div>
+                                <div ng-switch-when="multiple-choice-formula-question">
+                                    <span title="QCM avec formules" class="glyphicon glyphicon-check" style="font-size: 260%"></span>
+                                </div>
                                 <div ng-switch-when="open-ended-question">
                                                 <span class="glyphicon glyphicon-question-sign" title="Question à réponse courte ouverte"
                                                       style="font-size: 260%"></span>
@@ -175,12 +178,18 @@
                         <div ng-switch-when="multiple-choice-question">
                             <label>Question&nbsp;:&nbsp;</label>{{ resources[documentId.id].content.question }}
                         </div>
+                    <div ng-switch-when="multiple-choice-formula-question">
+                        <label>Question&nbsp;:&nbsp;</label>{{ resources[documentId.id].content.question }}
+                    </div>
                         <div ng-switch-when="open-ended-question">
                             <label>Question&nbsp;:&nbsp;</label>{{ resources[documentId.id].content.question }}
                         </div>
                     </div>
                     <div class="col-centered" ng-switch="resources[documentId.id].type">
                         <div ng-switch-when="multiple-choice-question">
+                            <label>Commentaire&nbsp;:&nbsp;</label>{{ resources[documentId.id].content.comment }}
+                        </div>
+                        <div ng-switch-when="multiple-choice-formula-question">
                             <label>Commentaire&nbsp;:&nbsp;</label>{{ resources[documentId.id].content.comment }}
                         </div>
                         <div ng-switch-when="open-ended-question">
@@ -221,6 +230,11 @@
         <div ng-include
              src="BASE_CONFIG.urls.partials.teacher+'/partial-model-edit-multiple-choice.html'"
              data-ng-controller="modelEditMultipleChoiceController"></div>
+    </div>
+    <div ng-switch-when="multiple-choice-formula">
+        <div ng-include
+             src="BASE_CONFIG.urls.partials.teacher+'/partial-model-edit-multiple-choice-formula.html'"
+             data-ng-controller="modelEditMultipleChoiceFormulaController"></div>
     </div>
     <div ng-switch-when="group-items">
         <div ng-include
@@ -285,6 +299,36 @@
     </div>
 </div>
 
+
+<!-- TODO BRYAN : Pour l'export--><!--
+<div class="panel panel-primary">
+    <div class="panel-heading">
+        <div id="download_JSON" class="col-centered">
+            <h5>Exporter des Exercices</h5>
+
+            <input name="MQCF_export" type="number" ng-model="MCFQ_number_export"
+                   value="1" min="1" max="200" required >
+
+            <!--
+            <div class="row">
+                 <div class="col-xs-12">
+                    <span id="MFCQ_exported">{{number_to_generate_left}}</span>
+                    <span> / </span>
+                   <span ng-bind="MCFQ_number_export">{{MCFQ_number_export}}</span>
+                 </div>
+            </div>
+            --
+            <button
+                    ng-disabled="!model.complete"
+                    ng-click="MCFQ_export_1(model, MCFQ_number_export)" class="btn btn-primary"
+                    title="Exporter un ensemble d'exercices generes">
+                Exporter
+            </button>
+        </div>
+    </div>
+</div> <!-->
+<!-- TODO Bryan : Fin de l'export -->
+
 <div class="navbar">
     <button back-Button class="btn btn-primary"
             title="Retour à l'écran précédent. Toute modification non sauvegardée sera perdue.">Retour
@@ -306,11 +350,22 @@
             title="Essayer le modèle">
         Essayer
     </button>
+
+    <!--ng-click="exportExerciceFromModel(model)" class="btn btn-primary"-->
+    <!--
+    <button
+            ng-disabled="!model.complete"
+            ng-click="exportExerciceFromModel(model)" class="btn btn-primary"
+            title="Exporter un ensemble d'exercices generes">
+        Exporter
+    </button>
+    -->
+
     <button ng-if="BASE_CONFIG.currentUserId == model.owner && model.removable"
             ng-click="deleteModel(model)" back-Button
             class="btn btn-danger pull-right"
             title="Supprimer ce modèle. Possible uniquement si aucun exercise n'a été généré à partir de ce modèle">
-        Supprimer
+        <Supprimer></Supprimer>
     </button>
 </div>
 

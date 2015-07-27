@@ -18,7 +18,7 @@ resourceControllers.controller('resourceController', ['$scope', '$modal',
             archived: false, // select archived resources or not (boolean)
             public: false, // select public resources or not (boolean)
             type: { // resources types to be selected
-                multiple_choice_question: 'multiple-choice-question', text: 'text', picture: 'picture', open_ended_question: 'open-ended-question', sequence: ''
+                multiple_choice_question: 'multiple-choice-question', text: 'text', picture: 'picture', open_ended_question: 'open-ended-question', sequence: '', multiple_choice_formula:'multiple-choice-formula-question'
             },
             keywords: [], // list of keywords that a resource must have to be selected
             metadata: [] // list of metadata objects that a resource must have to be selected
@@ -55,6 +55,13 @@ resourceControllers.controller('resourceController', ['$scope', '$modal',
                 $scope.filters.type.picture = '';
                 $scope.filters.type.open_ended_question = 'open-ended-question';
                 $scope.filters.type.sequence = '';
+            } else if(newValue == 'multiple-choice-formula') {
+                $scope.filters.type.multiple_choice_question = '';
+                $scope.filters.type.text = '';
+                $scope.filters.type.picture = '';
+                $scope.filters.type.open_ended_question = '';
+                $scope.filters.type.sequence = '';
+                $scope.filters.type.multiple_choice_formula_question = 'multiple-choice-formula-question';
             }
         });
 
@@ -116,7 +123,7 @@ resourceControllers.controller('resourceController', ['$scope', '$modal',
                 },
                 "multiple_choice_question": {
                     "type": "multiple-choice-question",
-                    "title": "Nouvelle question",
+                    "title": "Nouvelle question Ancienne",
                     "public": false,
                     "archived": false,
                     "draft": false,
@@ -143,7 +150,7 @@ resourceControllers.controller('resourceController', ['$scope', '$modal',
                 },
                 "open_ended_question": {
                     "type": "open-ended-question",
-                    "title": "Nouvelle question",
+                    "title": "Nouvelle question OPEN ENDED",
                     "public": false,
                     "archived": false,
                     "draft": false,
@@ -159,7 +166,35 @@ resourceControllers.controller('resourceController', ['$scope', '$modal',
                     },
                     "required_exercise_resources": null,
                     "required_knowledges": null
+                },
+                "multiple_choice_formula_question": {
+                    "type": "multiple-choice-formula-question",
+                    "title": "Nouvelle question QCM avec formules",
+                    "public": false,
+                    "archived": false,
+                    "draft": false,
+                    "complete": null,
+                    "metadata": [],
+                    "keywords": [],
+                    "content": {
+                        "formulas": [],
+                        "do_not_shuffle": true,
+                        "question": null,
+                        "propositions": [
+                            {
+                                "text": null,
+                                "right": true
+                            }
+                        ],
+                        "comment": null,
+                        "max_number_of_propositions": 0,
+                        "max_number_of_right_propositions": 0,
+                        "object_type": "multiple_choice_formula_question"
+                    },
+                    "required_exercise_resources": null,
+                    "required_knowledges": null
                 }
+
             }
         };
 
@@ -291,6 +326,15 @@ resourceControllers.controller('resourceListController', ['$scope', '$state', 'R
                 });
             } else if (type == 'open-ended-question') {
                 Resource.save($scope.resourceContext.newResources.open_ended_question, function (data) {
+                    $scope.resources[data.id] = data;
+                    if ($scope.parentSection === 'model') {
+                        $state.go('modelEdit.resourceEdit', {resourceid: data.id});
+                    } else {
+                        $state.go('resourceEdit', {resourceid: data.id});
+                    }
+                });
+            } else if (type == 'multiple-choice-formula-question') {
+                Resource.save($scope.resourceContext.newResources.multiple_choice_formula_question, function (data) {
                     $scope.resources[data.id] = data;
                     if ($scope.parentSection === 'model') {
                         $state.go('modelEdit.resourceEdit', {resourceid: data.id});
@@ -487,6 +531,17 @@ resourceControllers.controller('resourceEditController', ['$scope', '$modal', 'R
             });
         };
 
+        $scope.removeFromCollection_QCMFormula = function (collection, index) {
+            if((collection[1]) && (index == 0) )
+            {
+                alert(collection[0].toSource());
+                console.dir(collection[0]);
+                collection[1].variables = collection[0].variables;
+            }
+            collection.splice(index, 1);
+
+        };
+
         $scope.removeFromCollection = function (collection, index) {
             collection.splice(index, 1);
         };
@@ -550,6 +605,51 @@ resourceControllers.controller('resourceEditController', ['$scope', '$modal', 'R
             );
         };
 
+        /* MULTIPLE CHOICE FORMULA : Ajoute la variable à toute les formules */
+        /* Y a mieux j'imagine... Mais bon, ne faisons point la fine bouche */
+        /* TODO BRYAN : Complete ça !
+
+         /* TODO BRYAN : Cela me parait trop compliqué... Mieux vaut faire une fonction de save différente... */
+         /* Lorsque l'une des variables est créée, on la crée dans la formule, et pour chaque autre formule on fait un watch ! */
+        $scope.formulaMVFAddVariable = function (collection) {
+            collection.splice(collection.length,
+                0,
+                jQuery.extend(true, {}, $scope.resourceContext.formula.newVariable)
+            );
+            /* Pour chaque formule existente, on ajoute l'élément et on synchronise avec les autres */
+            angular.forEach(collection.parent.parent, function( value, key)
+            {
+                formulaMVFAddVariable( value.variables );
+                $scope.$watch( collection.variables[collection.variables.length-1],
+                    function(v){ value.variables[value.variables.length-1] = v; });
+            } );
+        };
+
+        //$scope.$watch( '$editedResources', function(){} );
+        /* TODO BRYAN : Fonction de sauvegarde pour les MCFQ particulièrement */
+        $scope.saveMultiple_choice_formula_question = function (element) {
+            if(element.formulas.length>0)
+            {
+                for(j=1; j<element.formulas.length; j++)
+                {
+                    element.formulas[j].variables.length = 0;
+                    for(i=0; i<element.formulas[0].variables.length; i++)
+                        {
+                            //alert("COBRA !");
+                            $scope.formulaAddVariable(element.formulas[j].variables);
+                            element.formulas[j].variables[i] = element.formulas[0].variables[i];
+                        }
+                }
+            }
+            else
+            {
+                //alert("PAS COBRA : " + element.formulas.length );
+            }
+            $scope.updateResource();
+        };
+
+        /* MULTIPLE CHOICE FORMULA */
+
         $scope.resourceAddFormula = function (collection) {
             collection.splice(collection.length,
                 0,
@@ -575,8 +675,8 @@ resourceControllers.controller('resourceSelectListController', ['$scope', 'BASE_
 
 var modelControllers = angular.module('modelControllers', ['ui.router']);
 
-modelControllers.controller('modelController', ['$scope', 'ExerciseByModel', 'AttemptByExercise', '$routeParams', '$location',
-    function ($scope, ExerciseByModel, AttemptByExercise, $routeParams, $location) {
+modelControllers.controller('modelController', ['$scope', 'Exercise','Item', 'ExerciseByModel', 'AttemptByExercise','ItemByExercise', 'Answer', '$routeParams', '$location',
+    function ($scope, Exercise, Item, ExerciseByModel ,AttemptByExercise, ItemByExercise, Answer, $routeParams, $location) {
 
         $scope.section = 'model';
 
@@ -590,6 +690,7 @@ modelControllers.controller('modelController', ['$scope', 'ExerciseByModel', 'At
             public: false, // select public resources or not (boolean)
             type: { // resources types to be selected
                 multiple_choice: 'multiple-choice', pair_items: 'pair-items', order_items: 'order-items', open_ended_question: 'open-ended-question', group_items: 'group-items'
+                , multiple_choice_formula: 'multiple-choice-formula'
             },
             keywords: [], // list of keywords that a resource must have to be selected
             metadata: [] // list of metadata objects that a resource must have to be selected
@@ -798,8 +899,86 @@ modelControllers.controller('modelController', ['$scope', 'ExerciseByModel', 'At
                             "excluded": []
                         }
                     }
+                },
+                "test_exercise": {
+                    "type": "open-ended-question",
+                    "title": "Nouveau modèle d'exercice de question de mon NTE exercise Test Exercise",
+                    "public": false,
+                    "archived": false,
+                    "draft": false,
+                    "complete": null,
+                    "metadata": [],
+                    "keywords": [],
+                    "content": {
+                        "wording": null,
+                        "documents": [],
+                        "question_blocks": [
+                            {
+                                "number_of_occurrences": 0,
+                                "resources": [],
+                                "is_list": true
+                            }
+                        ],
+                        "shuffle_questions_order": true,
+                        "exercise_model_type": "open-ended-question"
+                    },
+                    "required_exercise_resources": null,
+                    "required_knowledges": null
+                },
+                "sub_test_exercise": {
+                    "block_field": {
+                        "number_of_occurrences": 0,
+                        "resources": [],
+                        "is_list": true,
+                        "resource_constraint": {
+                            "metadata_constraints": [],
+                            "excluded": []
+                        }
+                    }
+                },
+                "multiple_choice_formula": {
+                    "type": "multiple-choice-formula",
+                    "title": "Nouveau QCM avec formules",
+                    "public": false,
+                    "archived": false,
+                    "draft": false,
+                    "complete": null,
+                    "metadata": [],
+                    "keywords": [],
+                    "content": {
+                        "wording": null,
+                        "documents": [],
+                        "question_blocks": [
+                            {
+                                "number_of_occurrences": 0,
+                                "resources": [],
+                                "is_list": true,
+                                "max_number_of_propositions": 0,
+                                "max_number_of_right_propositions": 0
+                            }
+                        ],
+                        "shuffle_questions_order": true,
+                        "exercise_model_type": "multiple-choice-formula"
+                    },
+                    "required_exercise_resources": null,
+                    "required_knowledges": null
+                },
+                "sub_multiple_choice_formula": {
+                    "block_field": {
+                        "number_of_occurrences": 0,
+                        "resources": [],
+                        "is_list": true,
+                        "max_number_of_propositions": 0,
+                        "max_number_of_right_propositions": 0,
+                        "resource_constraint": {
+                            "metadata_constraints": [],
+                            "excluded": []
+                        }
+                    }
                 }
-            }
+
+                }
+
         };
 
         $scope.modelAddKeywordsField = function (collection) {
@@ -871,6 +1050,322 @@ modelControllers.controller('modelController', ['$scope', 'ExerciseByModel', 'At
                     $scope.tryExercise(exercise);
                 });
         };
+
+
+        /* TODO BRYAN EXPORT : EN COUR ; FUNCTION ICI*/
+
+        /* export_model function_list */
+        //var MCFQ_number_export = 3;
+        var MCFQ_actual_number_export;
+        var MCFQ_list_exercise = new Array();
+        var MCFQ_actual_exercise;
+        var MCFQ_error_flag;
+        //var A_popup;
+
+        /* TODO : Generate a document */
+        $scope.Generate_Json_File = function( json_filename,data_exercise)
+        {
+            //alert("Trying to generate a document");
+            var data = "text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data_exercise));
+            //$('<a href="data:' + data + '" download="data.json">Télécharger JSON</a>').appendTo('#download_JSON');
+            //$('<a href="data:' + data + '" download="data.json">Télécharger JSON</a>').appendTo('#download_JSON');
+            //window.location ='http://www.example.com';
+            if(MCFQ_error_flag == 1) { alert("Erreur lors de la génération, seulement " + data_exercise.length + " ont pu être générés"); }
+            var link = document.createElement("a");
+            link.download = json_filename + '.json';
+            link.href = data;
+            link.click();
+            window.open("data:"+data, "Export.json");
+            // window.open(uri, data);
+            //alert("data généré : " + data);
+
+        };
+
+
+        /* TODO BRYAN EXPORT : Verifier export_model final test here */
+        $scope.MCQF_export_generate = function(model, number_left)
+        {
+            if(typeof(number_left) === undefined){ alert("Nombre à exporter invalide"); return null;}
+            // Cas de génération finie, on doit créer le JSON !
+            if(number_left <= 0) {return null;}
+
+            //Cas de génération à continuer.
+            // TODO UNLOCK : alert("Nombre à exporter restant : " + number_left + ", model.id : " + model.id);
+            MCFQ_actual_exercise = ExerciseByModel.try({modelId: model.id},
+                function(exercise){
+                    if(number_left === 1)
+                    {
+                        $scope.MCQF_export_tryExercise(model, exercise, number_left);
+                    }
+                    else
+                    {
+                        $scope.MCQF_export_tryExercise(model, exercise, number_left);
+                        /* Flute... Ce dernier element n'attends pas pour appeler le suivant... */
+                        //$scope.MCQF_export_generate( exercise, number_left-1 );
+                    }
+                });
+        };
+
+        /*
+        *   Renvoie vrai si il existe un element equivalent deja cree. Un exercice est equivalent a un autre
+        *   si la question est la même, que les propositions sont toutes identiques (et de même nombre)
+        * */
+        $scope.MCFQ_is_equal = function( element )
+        {
+            var i, j, k;
+            var counter, eq_counter;
+            for(i=0; i< MCFQ_list_exercise.length; i++)
+            {
+                equal = true;
+                /* verification de la question */
+                if(MCFQ_list_exercise[i].content.question != element.content.question)
+                { equal = false; //alert("questions différentes !" );
+                }
+
+                /* verification de chaque proposition */
+                if( element.content.propositions.length == MCFQ_list_exercise[i].content.propositions.length)
+                {
+
+                    //alert("Verification : "+ JSON.stringify(element) + " avec " + JSON.stringify(MCFQ_list_exercise[i]) );
+                    eq_counter = 0;
+                    for(k=0; k<element.content.propositions.length; k++)
+                    {
+                        counter = 0;
+                        for( j=0; j<MCFQ_list_exercise[i].content.propositions.length; j++)
+                        {
+
+                           if( MCFQ_list_exercise[i].content.propositions[j].text == element.content.propositions[k].text
+                            && MCFQ_list_exercise[i].content.propositions[j].right == element.content.propositions[k].right ) { counter += 1; //alert(" Equivalent propositions trouvé !" );
+                           }
+
+                        }
+                        if(counter != 0 ) {eq_counter +=1;}
+                    }
+                    if(eq_counter != element.content.propositions.length) { equal = false; //alert(" Equivalent pour chaque propositions non trouvé !" );
+                    }
+
+                 } else { equal = false; //alert(" Nombre différent de propositions !" );
+                }
+
+                //alert("equal vaut : " + equal);
+                if(equal == true){return true;}
+                //return equal;
+            }
+            return false;
+        };
+
+        /**
+         *  Transformation des elements generes pour le json
+         */
+        $scope.MCFQ_treat = function(model)
+        {
+            var resultat = [];
+            var i, y, z;
+            var item_question_JSON=[];
+            var propositions = [];
+            var prop_item;
+            var prop;
+            //alert("Debut de la fonction treat");
+            var comment; // <- Où se trouve ce truc ??
+
+            /* Il me faut des fonctions de comparaison */
+            /* Creation des elemens. */
+            for(i=0; i<MCFQ_list_exercise.length; i++)
+            {
+                item_question_JSON = {};
+                //alert(" comment is..." + JSON.stringify(MCFQ_list_exercise[i].content.comment) );
+                //if( MCFQ_list_exercise[i].content.comment != undefined) {item_question_JSON["comment"] = MCFQ_list_exercise[i].content.comment; }
+
+                item_question_JSON["question"] =  MCFQ_list_exercise[i].content.question ;
+
+                //alert("Ajout des propositions");
+                propositions = [];
+                for( y=0; y<MCFQ_list_exercise[i].content.propositions.length; y++)
+                {
+                    prop = MCFQ_list_exercise[i].content.propositions[y];
+                    prop_item = {};
+                    prop_item["text"] = prop.text;
+                    prop_item["right"] = prop.right;
+                   // alert("Element ajoute : " + prop_item);
+                    propositions.push(prop_item);
+                   // alert("J'ai généré : JSON : " + JSON.stringify( propositions ));
+                   // alert() --  >;
+                }
+                item_question_JSON["propositions"]= propositions;
+
+
+                //alert("Ajout des origines");
+                item_question_JSON["origin_resource"] = MCFQ_list_exercise[i].content.origin_resource ;
+
+
+                /* Ajout des meta du domaine... URI-Evaluation */
+                //alert("Ajout des metas");
+                var aa;
+                var metas = [];
+                //alert(JSON.stringify(model.metadata));
+                for(aa=0; aa<model.metadata.length; aa++)
+                {
+                    //alert(JSON.stringify(model.metadata[aa]));
+                    metas.push(model.metadata[aa]);
+                }
+                if(metas.length>0)
+                {item_question_JSON["metas"] = metas;}
+                /*var metas = [];
+                for(z = 0; model.metadata.length;z++)
+                {
+                    metas.push( model.metadata[z] );
+                }
+                if(metas.length>0)
+                {item_question_JSON["metas"] = metas;}*/
+
+                item_question_JSON["item_type"] = "multiple-choice-question";
+                resultat.push( item_question_JSON );
+                //alert("J'ai généré treat : JSON : " + JSON.stringify( item_question_JSON ));
+                //alert("Originel : J'ai généré : JSON : " + JSON.stringify(MCFQ_list_exercise[i]));
+            }
+            //alert("Le modèle" + JSON.stringify(model));
+            $scope.Generate_Json_File("resultat",resultat);
+            //alert( JSON.stringify(resultat));
+
+        };
+
+        /* Variable a binder a l interface */
+        $scope.number_to_generate_left = 0;
+        $scope.successive_attempt_fail = 0;
+        //function that create an attempt without visualing it
+        $scope.MCQF_export_tryExercise = function (model, exercise, number) {
+            $scope.number_to_generate_left = MCFQ_list_exercise.length;
+            //alert($scope.number_to_generate_left);
+            //if(number === undefined){return null;} else {alert("#n = " + number );}
+            // create attempt from exercise
+            var exo_items;
+            var exo_answers;
+            var item_id_exo;
+            var attempt;
+            //alert("exercise cree");
+
+            exo_items = Exercise.get({exerciseId : exercise.id},
+
+            function(res){
+
+            // Create the attempt from exo...
+            attempt = AttemptByExercise.create({exerciseId: exercise.id},
+                function(result){
+                   // document.getElementById("MFCQ_exported").innerHTML = MCFQ_list_exercise.length;
+                    MCFQ_error_flag = 0;
+                    //alert("attemptId : " + JSON.stringify(result));
+                    item_id_exo = Item.query( {attemptId : result.id},
+                        function(result2){
+                        //alert("result2 :" + JSON.stringify(result2));
+                        //alert("result2.item_id :" + result2[0].item_id);
+                        var answer = new Answer;
+                        answer.content = [];
+
+                            for (i = 0; i < result2[0].content.propositions.length; ++i) {
+                                answer.content.push(0);
+                            }
+
+                        answer.$save(  { itemId: result2[0].item_id, attemptId : result.id},
+                            function(r3){
+                                //alert("JSON : " + JSON.stringify(r3.content.propositions));
+
+                                /* Avant le push, on vérifie ou on l en est */
+                                if( $scope.MCFQ_is_equal( r3 )) {$scope.successive_attempt_fail= $scope.successive_attempt_fail + 1; number++; //alert("exercices identiques ! : " + $scope.successive_attempt_fail );
+                                }
+                                else { $scope.successive_attempt_fail = 0; MCFQ_list_exercise.push(r3);//alert("OK!");
+                                }
+                                if($scope.successive_attempt_fail>10){
+                                   /* alert("10 exercices identiques générés à la suite. Verifiez que le modèle permet la génération d'au moins le nombre d'exercice demandé. Arrêt de la génération à ."
+                                    + MCFQ_list_exercise.length +" exercices. " );*/
+                                    MCFQ_error_flag = 1; number = 1;}
+
+                                /* C'est ici qu'il faut gérer le cas d'aret */
+                                if(number === 1) {//alert("J'ai généré : JSON : " + JSON.stringify(MCFQ_list_exercise));
+                                                  $scope.MCFQ_treat(model);
+                                                  return;}
+
+                                $scope.MCQF_export_generate( model, number-1 );
+                           }
+                        );
+                      }
+                    );
+                    //exo_answers = Answer.view( {attemptId : result.id} );
+                }
+            );
+            }
+            );
+            //alert("attemptId : " + JSON.stringify(attempt));
+
+
+            //retrieve those elements...
+            //alert(JSON.stringify(exo_items));
+            //alert("J ai fini pour cet exercice");
+        };
+
+        //function that return one exercise
+        $scope.MCFQ_export_1 = function(model, MCFQ_number_export)
+        {
+            var exercise;
+            MCFQ_list_exercise = new Array();
+            $scope.MCFQ_actual_number_export = 0;
+            console.log('export MCFQ exercise...');
+
+            //alert(">< : " + MCFQ_number_export);
+            $scope.MCQF_export_generate(model, MCFQ_number_export);
+            //alert("actuel : " + $scope.MCFQ_actual_number_export + " max : "+ $scope.MCFQ_number_export);
+            //alert("actuel : " + element(by.model('MCFQ_actual_number_export')) + " max : "+ element(by.model('MCF_number_export')));
+            /*while($scope.MCFQ_actual_number_export<MCFQ_number_export)
+            {
+                // Repeat until exercise completion.
+                MCFQ_actual_exercise = ExerciseByModel.try({modelId: model.id},
+                function (exercise) {
+                    alert("nombre à exporter : " + MCFQ_number_export + " id :"+MCFQ_actual_exercise.id + " :: idExo :" + exercise.id);
+                    $scope.MCQF_export_tryExercise(exercise, MCFQ_actual_number_export);
+                });
+            /**/
+                /* Faire une boucle d'appel à la fonction à la manière récursive ? avec un compteur qui augmente et un cas d'arret ?
+                * Seem legit
+                * */
+            /*
+                // Si la génération s'est bien passée, on peut passer à la génération suivante
+                $scope.MCFQ_actual_number_export =  $scope.MCFQ_actual_number_export + 1;
+                //TODO Bryan : Pour le moment, la génération passe directement à la suite sans vérifier...
+                // Il faut générer un par un avec verification. Se calquer sur ExerciseByModel.try
+
+                // On n'oublie pas de stocker l'exercice
+                //MCFQ_list_exercise.push(MCFQ_actual_exercise);
+            }
+            /**/
+
+
+            /* On vérifie ce que l'on a exporté */
+           // alert("J'ai généré : JSON : " + JSON.stringify(MCFQ_list_exercise));
+           //alert('Génération des exercices en pause...');
+        };
+
+        //function that generate exercise until MCFQ_number_export
+        // This function export an exercise without further verifications
+        $scope.exportExerciceFromModel = function ( model ){
+            // create exercise from model
+            console.log('export exercise...');
+
+            //A_popup = window.open("export.html", "popup_id", "scrollbars,resizable,width=200,heigh=400,");
+            //A_popup = window.open("partial-model-edit.html", "popup_id", "scrollbars,resizable,width=200,heigh=400,");
+            A_popup = window.open(BASE_CONFIG.urls.partials.teacher + "/partial-export-question.html", "popup_id", "scrollbars,resizable,width=200,heigh=400,");
+            // TODO BRYAN : Ce n'est pas un chemin absolu qu'il me faut là
+            ///A_popup = window.open("C:/wamp/www/Claroline/web/bundles/simpleitclaireexercise/partials/teacher/partial-model-edit.html",
+            ///        "popup_id", "scrollbars,resizable,width=200,heigh=400,");
+
+            //alert("exportation");
+            //scope.go("");
+            //$location.path("/teacher/attempt/" + attempt.id);
+            //$state.go( exportEdit, {resourceId: model.modelID});
+            /*exercise = ExerciseByModel.try({modelId: modelId},
+             function (exercise) {
+             $scope.tryExercise(exercise);
+             });*/
+        };
+
     }])
 ;
 
@@ -963,6 +1458,16 @@ modelControllers.controller('modelListController', ['$scope', 'Model', '$locatio
                     $location.path('/teacher/model/' + data.id)
                 });
             }
+            else if ( type == 'test-exercise'){ /** TODO HERE décommenter si cela n'est pas fait. */
+            Model.save($scope.modelContext.newModel.test_exercise, function (data) {
+                $location.path('/teacher/model/' + data.id)
+            });
+            }
+            else if ( type == 'multiple-choice-formula'){
+            Model.save($scope.modelContext.newModel.multiple_choice_formula, function (data) {
+                $location.path('/teacher/model/' + data.id)
+            });
+            }
         };
     }]);
 
@@ -979,6 +1484,9 @@ modelControllers.controller('modelEditController', ['$scope', 'Model', 'Resource
                 case 'multiple-choice':
                     $scope.acceptedTypes = ['multiple-choice-question'];
                     break;
+                case 'multiple-choice-formula':
+                     $scope.acceptedTypes = ['multiple-choice-formula-question'];
+                     break;
                 case 'open-ended-question':
                     $scope.acceptedTypes = ['open-ended-question'];
                     break;
@@ -1006,6 +1514,9 @@ modelControllers.controller('modelEditController', ['$scope', 'Model', 'Resource
                     $scope.fillConstraints(model.content.object_blocks);
                     break;
                 case 'multiple-choice':
+                    $scope.fillConstraints(model.content.question_blocks);
+                    break;
+                case 'multiple-choice-formula':
                     $scope.fillConstraints(model.content.question_blocks);
                     break;
                 case 'open-ended-question':
@@ -1299,3 +1810,29 @@ modelControllers.controller('modelEditOpenEndedQuestionController', ['$scope',
         }
 
     }]);
+
+modelControllers.controller('modelEditTestExerciseController', ['$scope',
+    function ($scope) {
+
+        $scope.modelAddBlockField = function (collection) {
+            collection.splice(
+                collection.length,
+                0,
+                jQuery.extend(true, {}, $scope.modelContext.newModel.sub_open_ended_question.block.block_field)
+            );
+        }
+
+    }]);
+
+modelControllers.controller('modelEditMultipleChoiceFormulaController', ['$scope',
+    function ($scope) {
+
+        $scope.modelAddBlockField = function (collection) {
+            collection.splice(
+                collection.length,
+                0,
+                jQuery.extend(true, {}, $scope.modelContext.newModel.sub_multiple_choice_formula.block_field)
+            );
+        };
+    }]);
+

@@ -36,3 +36,13 @@ api_attempts_create_by_exercise:
     requirements:
         _format: json
         exerciseId: \d+
+
+
+api_answer_list_by_item_by_exercise:
+    pattern:  /{exerciseId}/items/{itemId}/answers/
+    defaults: { _controller: SimpleITClaireExerciseBundle:Api/CreatedExercise/AnswerByItem:list }
+    methods: [GET]
+    requirements:
+        _format: json
+        exerciseId: \d+
+        itemId: \d+
